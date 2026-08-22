@@ -12,6 +12,8 @@ data class AgentStatus(
     @SerialName("title") val title: String = "Idle",
     @SerialName("detail") val detail: String = "",
     @SerialName("model") val model: String = "ox-alpha-free",
+    @SerialName("elapsed_seconds") val elapsedSeconds: Int = 0,
+    @SerialName("formatted_time") val formattedTime: String = "00:00",
     @SerialName("proc_count") val procCount: Int = 0,
     @SerialName("updated_at") val updatedAt: Long = 0L
 )
