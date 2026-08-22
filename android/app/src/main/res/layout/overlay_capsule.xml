@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/capsule_background"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="10dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/capsule_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:text="🐾" />
+
+        <Space android:layout_width="6dp" android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/capsule_agent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:text="OpenCode" />
+
+        <Space android:layout_width="16dp" android:layout_height="match_parent" />
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/punch_hole_mock" />
+
+        <Space android:layout_width="16dp" android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/capsule_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFB59D"
+            android:text="🔨 04:05" />
+    </LinearLayout>
+</FrameLayout>

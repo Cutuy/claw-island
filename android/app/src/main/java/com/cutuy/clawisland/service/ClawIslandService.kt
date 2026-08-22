@@ -13,6 +13,7 @@ import com.cutuy.clawisland.models.AgentStatus
 import com.cutuy.clawisland.notification.PixelLiveUpdateHelper
 import com.cutuy.clawisland.notification.StandardNotificationHelper
 import com.cutuy.clawisland.notification.VivoSuperXHelper
+import com.cutuy.clawisland.overlay.FloatingIslandController
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import okhttp3.*
@@ -37,6 +38,10 @@ class ClawIslandService : Service() {
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .retryOnConnectionFailure(true)
         .build()
+
+    // Floating overlay (option B) — independent of notification rendering path.
+    // Works on both Pixel and Vivo as long as SYSTEM_ALERT_WINDOW is granted.
+    private var floatingIsland: FloatingIslandController? = null
 
     // 30s heartbeat: even when SSE delivers static content (e.g. OpenClaw idle with the
     // same current_action.md), re-post the notification so the visible setWhen() timestamp
@@ -67,6 +72,9 @@ class ClawIslandService : Service() {
             VivoSuperXHelper.createNotificationChannel(this)
         } else {
             PixelLiveUpdateHelper.createNotificationChannel(this)
+        }
+        floatingIsland = FloatingIslandController(this).also {
+            Log.d(TAG, "FloatingIsland ready, canShow=${it.canShow()}")
         }
     }
 
@@ -204,6 +212,13 @@ class ClawIslandService : Service() {
         val id = notificationId()
         Log.d(TAG, "notify(id=$id, agent=${status.agent}, state=${status.stateType}, t=${status.formattedTime})")
         notificationManager.notify(id, notification)
+
+        // Mirror the status to the floating overlay (independent visual surface).
+        // No-op if permission not granted.
+        floatingIsland?.let { overlay ->
+            runCatching { overlay.show(status) }
+                .onFailure { Log.w(TAG, "FloatingIsland show failed: ${it.message}") }
+        }
     }
 
     override fun onDestroy() {
@@ -211,9 +226,7 @@ class ClawIslandService : Service() {
         eventSource?.cancel()
         serviceScope.cancel()
         mainHandler.removeCallbacks(heartbeatTick)
-        if (isVivoDevice()) {
-            VivoSuperXHelper.releaseMediaSession()
-        }
+        floatingIsland?.let { runCatching { it.hide() } }
         Log.d(TAG, "Service destroyed")
     }
 

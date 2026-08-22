@@ -3,8 +3,10 @@ package com.cutuy.clawisland
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,12 +45,47 @@ class MainActivity : ComponentActivity() {
     private var isServiceRunning by mutableStateOf(false)
     private var currentStatus by mutableStateOf(AgentStatus())
 
+    private var hasOverlayPermission by mutableStateOf(canDrawOverlays())
+
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
-                startMonitorService()
+                ensureOverlayPermissionThenStart()
             }
         }
+
+    private val requestOverlayPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            hasOverlayPermission = canDrawOverlays()
+            if (hasOverlayPermission) startMonitorService()
+        }
+
+    private fun canDrawOverlays(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+
+    private fun openOverlayPermissionSettings() {
+        val intent = Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        runCatching { requestOverlayPermissionLauncher.launch(intent) }
+            .onFailure { startActivity(intent) }
+    }
+
+    private fun ensureOverlayPermissionThenStart() {
+        if (!canDrawOverlays()) {
+            openOverlayPermissionSettings()
+        } else {
+            hasOverlayPermission = true
+            startMonitorService()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh after the user comes back from Settings.
+        hasOverlayPermission = canDrawOverlays()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,12 +155,12 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
-                startMonitorService()
+                ensureOverlayPermissionThenStart()
             } else {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         } else {
-            startMonitorService()
+            ensureOverlayPermissionThenStart()
         }
     }
 
