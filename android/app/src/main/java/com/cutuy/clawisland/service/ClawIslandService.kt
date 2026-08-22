@@ -4,9 +4,11 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import com.cutuy.clawisland.models.AgentStatus
+import com.cutuy.clawisland.notification.PixelLiveUpdateHelper
 import com.cutuy.clawisland.notification.StandardNotificationHelper
 import com.cutuy.clawisland.notification.VivoSuperXHelper
 import kotlinx.coroutines.*
@@ -46,7 +48,11 @@ class ClawIslandService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        VivoSuperXHelper.createNotificationChannel(this)
+        if (isVivoDevice()) {
+            VivoSuperXHelper.createNotificationChannel(this)
+        } else {
+            PixelLiveUpdateHelper.createNotificationChannel(this)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -144,10 +150,17 @@ class ClawIslandService : Service() {
         currentStatus = status
 
         val notification = try {
-            // Attempt OriginOS 5/6 SuperX Atomic Island bundle
-            VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = isUpdate)
+            if (isVivoDevice()) {
+                // Attempt OriginOS 5/6 SuperX Atomic Island bundle (won't promote for
+                // third-party apps, but keeps parity with previous vivo-targeted behavior).
+                VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = isUpdate)
+            } else {
+                // Pixel / AOSP path — Android 14+ Live Updates. Real system feature,
+                // rendered by Material 3, no overlay hacks required.
+                PixelLiveUpdateHelper.buildLiveUpdateNotification(this, status, isUpdate = isUpdate)
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "SuperX build fallback: ${e.message}")
+            Log.w(TAG, "Notification build fallback: ${e.message}")
             StandardNotificationHelper.buildStandardNotification(this, status)
         }
 
@@ -159,6 +172,13 @@ class ClawIslandService : Service() {
         super.onDestroy()
         eventSource?.cancel()
         serviceScope.cancel()
+    }
+
+    private fun isVivoDevice(): Boolean {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val brand = Build.BRAND.lowercase()
+        return manufacturer.contains("vivo") || brand.contains("vivo") ||
+            manufacturer.contains("iqoo") || brand.contains("iqoo")
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
