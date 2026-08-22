@@ -38,7 +38,9 @@ class ClawIslandService : Service() {
         private const val TAG = "ClawIslandService"
         const val ACTION_START = "com.cutuy.clawisland.action.START"
         const val ACTION_STOP = "com.cutuy.clawisland.action.STOP"
+        const val ACTION_SIMULATE = "com.cutuy.clawisland.action.SIMULATE"
         const val EXTRA_SERVER_URL = "extra_server_url"
+        const val EXTRA_SIM_PAYLOAD = "extra_sim_payload"
         const val DEFAULT_SERVER_URL = "http://100.64.0.4:18818"
     }
 
@@ -53,6 +55,28 @@ class ClawIslandService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
+        }
+
+        // SIMULATE: route sim test through foreground service so OriginOS promotes it to atomic island.
+        // Plain manager.notify() from an Activity context never gets promoted on OriginOS 5/6.
+        if (action == ACTION_SIMULATE) {
+            val payload = intent?.getStringExtra(EXTRA_SIM_PAYLOAD)
+            if (payload.isNullOrEmpty()) {
+                Log.w(TAG, "SIMULATE action received without payload, ignoring")
+                return START_NOT_STICKY
+            }
+            try {
+                val status = json.decodeFromString<AgentStatus>(payload)
+                isFirstNotification = true
+                val initial = VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
+                startForeground(VivoSuperXHelper.NOTIFICATION_ID, initial)
+                currentStatus = status
+                updateNotification(status)
+                Log.d(TAG, "Sim status posted: ${status.agent} ${status.stateType} ${status.formattedTime}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse SIMULATE payload: $payload", e)
+            }
+            return START_STICKY
         }
 
         val serverUrl = intent?.getStringExtra(EXTRA_SERVER_URL) ?: DEFAULT_SERVER_URL

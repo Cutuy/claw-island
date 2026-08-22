@@ -35,6 +35,7 @@ import androidx.core.content.ContextCompat
 import com.cutuy.clawisland.models.AgentStatus
 import com.cutuy.clawisland.notification.VivoSuperXHelper
 import com.cutuy.clawisland.service.ClawIslandService
+import kotlinx.serialization.json.Json
 
 class MainActivity : ComponentActivity() {
 
@@ -90,13 +91,19 @@ class MainActivity : ComponentActivity() {
                         },
                         onSimulateTest = { status ->
                             currentStatus = status
-                            val notification = VivoSuperXHelper.buildIslandNotification(
-                                this,
-                                status,
-                                isUpdate = true
-                            )
-                            val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-                            manager.notify(VivoSuperXHelper.NOTIFICATION_ID, notification)
+                            // Route through ClawIslandService so the notification is posted under
+                            // a foreground service context. Direct manager.notify() from an Activity
+                            // is silently NOT promoted to vivo OriginOS atomic island.
+                            val payload = Json.encodeToString(AgentStatus.serializer(), status)
+                            val simIntent = Intent(this, ClawIslandService::class.java).apply {
+                                action = ClawIslandService.ACTION_SIMULATE
+                                putExtra(ClawIslandService.EXTRA_SIM_PAYLOAD, payload)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                startForegroundService(simIntent)
+                            } else {
+                                startService(simIntent)
+                            }
                         }
                     )
                 }
