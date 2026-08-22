@@ -211,6 +211,9 @@ class ClawIslandService : Service() {
         eventSource?.cancel()
         serviceScope.cancel()
         mainHandler.removeCallbacks(heartbeatTick)
+        if (isVivoDevice()) {
+            VivoSuperXHelper.releaseMediaSession()
+        }
         Log.d(TAG, "Service destroyed")
     }
 
