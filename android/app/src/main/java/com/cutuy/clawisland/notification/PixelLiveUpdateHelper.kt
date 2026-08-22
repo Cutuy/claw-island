@@ -88,20 +88,15 @@ object PixelLiveUpdateHelper {
             .setPriority(Notification.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
 
-        // Android 14+ Live Updates section — platform API 34+.
-        // NOTE: setRequestPromotedOngoing isn't resolving on the workstation's compileSdk
-        // classpath (despite API 36 target). Possible causes: SDK platform 34+ add-on not
-        // installed, or Notification.Builder not exposing it. The rest of the surface
-        // (ongoing + colorized + BigTextStyle + VISIBILITY_PUBLIC + no-clear) already
-        // matches Pixel's Live Update appearance. We can revisit the dedicated section
-        // once we know the SDK situation. For now: skip the API call, ship the rest.
-        //
-        // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        //     builder.setRequestPromotedOngoing(true)
-        // }
-
         return builder.build().apply {
             flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+            // Android 14+ Live Updates section — set FLAG_PROMOTED_ONGOING directly.
+            // The setRequestPromotedOngoing() setter is not on Notification.Builder in
+            // the workstation's android-36.jar (only the two flag constants are exposed),
+            // so we set the underlying flag — it's the same effect.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                flags = flags or Notification.FLAG_PROMOTED_ONGOING
+            }
         }
     }
 
