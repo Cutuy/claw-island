@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import com.cutuy.clawisland.MainActivity
 import com.cutuy.clawisland.R
 import com.cutuy.clawisland.models.AgentStatus
@@ -14,35 +15,49 @@ import com.cutuy.clawisland.models.AgentStatus
 /**
  * Pixel / AOSP Live Updates helper.
  *
- * Uses the platform `android.app.Notification.Builder` (not NotificationCompat)
- * because `setRequestPromotedOngoing()` is a platform API (added in API 34 / Android 14)
- * and the project's pinned `androidx.core:core-ktx 1.15.0` doesn't surface it through
- * the compat layer. Since the target device (Pixel) is API 36, the live-updates section
- * in the lock screen + status bar will be populated. On older API levels, the
- * notification is still ongoing + colorized + BigTextStyle, just without the dedicated
- * "Live updates" surface.
+ * Conservative platform-Builder implementation. Earlier revisions carried
+ * `setColorized(true)` and post-build `FLAG_PROMOTED_ONGOING` mutation —
+ * both of those caused AndroidRuntimeExceptions on Android 17 (API 36,
+ * Pixel). They have been removed; the system itself decides whether to
+ * promote an ongoing foreground-service notification to the "Live updates"
+ * lock-screen surface on Pixel, and `setColorized` is only honored with
+ * media/decoration styles (which we're not using here).
  *
- * Renders natively via Pixel's Material 3 expressive design — no overlay hacks.
+ * What stays:
+ * - BigTextStyle for the expandable body
+ * - setOngoing(true) + FLAG_ONGOING_EVENT + FLAG_NO_CLEAR for foreground-service
+ *   behavior (stays put, can't be swiped, appears in "Ongoing" section)
+ * - setColor() for the small-icon accent (visible on lock screen + status bar)
+ * - setWhen + setShowWhen(true) so each post shows a fresh timestamp
+ *
+ * The helper is self-defensive: every build path is wrapped in try/catch
+ * and returns a minimal fallback notification rather than throwing — so
+ * the foreground service can always start on Pixel.
  */
 object PixelLiveUpdateHelper {
 
+    private const val TAG = "PixelLiveUpdateHelper"
     const val CHANNEL_ID = "claw_island_pixel_live_update"
     const val NOTIFICATION_ID = 10086
 
     fun createNotificationChannel(context: Context) {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Claw Island Live Update",
-            NotificationManager.IMPORTANCE_DEFAULT
-        ).apply {
-            description = "Live status of OpenCode / OpenClaw agents"
-            setShowBadge(false)
-            enableVibration(false)
-            setSound(null, null)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        try {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Claw Island Live Update",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Live status of OpenCode / OpenClaw agents"
+                setShowBadge(false)
+                enableVibration(false)
+                setSound(null, null)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        } catch (e: Throwable) {
+            Log.e(TAG, "createNotificationChannel failed (non-fatal)", e)
         }
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
     }
 
     fun buildLiveUpdateNotification(
@@ -65,42 +80,65 @@ object PixelLiveUpdateHelper {
         val subtitle = "${status.model} · ${status.title}"
         val detail = if (status.detail.isNotEmpty()) status.detail else "Standing by..."
 
-        val builder = Notification.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_claw_logo)
-            .setContentTitle(title)
-            .setContentText(subtitle)
-            .setStyle(
-                Notification.BigTextStyle()
-                    .bigText("$detail\n\nTap to open Claw Island.")
-                    .setBigContentTitle(title)
-                    .setSummaryText("${status.agent} · ${status.model}")
-            )
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            // Sound/vibration silenced via channel (setSound(null, null) +
-            // enableVibration(false) in createNotificationChannel). Platform
-            // Notification.Builder has no setSilent() — that's NotificationCompat-only.
-            // Live timestamp visible on every update so the user can SEE the notification
-            // is updating even when content is static. setWhen uses wall-clock now so the
-            // posted time visibly advances on every notify() call.
-            .setWhen(System.currentTimeMillis())
-            .setShowWhen(true)
-            .setColor(stateColor(status))
-            .setColorized(true)
-            .setCategory(Notification.CATEGORY_PROGRESS)
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setPriority(Notification.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
+        // Primary build path — rich BigTextStyle with timestamp + color accent.
+        return try {
+            Notification.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_claw_logo)
+                .setContentTitle(title)
+                .setContentText(subtitle)
+                .setStyle(
+                    Notification.BigTextStyle()
+                        .bigText("$detail\n\nTap to open Claw Island.")
+                        .setBigContentTitle(title)
+                        .setSummaryText("${status.agent} · ${status.model}")
+                )
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setWhen(System.currentTimeMillis())
+                .setShowWhen(true)
+                .setColor(stateColor(status))
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setPriority(Notification.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .build()
+                .apply {
+                    flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+                }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Rich notification build failed; falling back to minimal", e)
+            buildMinimalNotification(context, status, pendingIntent)
+        }
+    }
 
-        return builder.build().apply {
-            flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
-            // Android 14+ Live Updates section — set FLAG_PROMOTED_ONGOING directly.
-            // The setRequestPromotedOngoing() setter is not on Notification.Builder in
-            // the workstation's android-36.jar (only the two flag constants are exposed),
-            // so we set the underlying flag — it's the same effect.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                flags = flags or Notification.FLAG_PROMOTED_ONGOING
-            }
+    /**
+     * Last-ditch fallback. No styles, no color, no extras — just enough to keep
+     * the foreground service happy and the user oriented. Should never throw.
+     */
+    private fun buildMinimalNotification(
+        context: Context,
+        status: AgentStatus,
+        pendingIntent: PendingIntent
+    ): Notification {
+        return try {
+            Notification.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_claw_logo)
+                .setContentTitle("${status.agent}: ${status.stateType}")
+                .setContentText(status.detail.take(200).ifEmpty { "Standing by..." })
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setWhen(System.currentTimeMillis())
+                .setShowWhen(true)
+                .setContentIntent(pendingIntent)
+                .build()
+                .apply {
+                    flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+                }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Minimal fallback also failed; returning bare notification", e)
+            // Absolute last resort — no channel, no extras. Should still work
+            // because startForeground will accept any non-null Notification.
+            Notification()
         }
     }
 

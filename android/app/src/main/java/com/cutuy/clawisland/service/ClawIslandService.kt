@@ -89,10 +89,15 @@ class ClawIslandService : Service() {
             try {
                 val status = json.decodeFromString<AgentStatus>(payload)
                 isFirstNotification = true
-                val initial = if (isVivoDevice()) {
-                    VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
-                } else {
-                    PixelLiveUpdateHelper.buildLiveUpdateNotification(this, status, isUpdate = false)
+                val initial = try {
+                    if (isVivoDevice()) {
+                        VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
+                    } else {
+                        PixelLiveUpdateHelper.buildLiveUpdateNotification(this, status, isUpdate = false)
+                    }
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Sim notification build failed; using standard fallback", e)
+                    StandardNotificationHelper.buildStandardNotification(this, status)
                 }
                 startForeground(notificationId(), initial)
                 currentStatus = status
@@ -106,11 +111,19 @@ class ClawIslandService : Service() {
 
         val serverUrl = intent?.getStringExtra(EXTRA_SERVER_URL) ?: DEFAULT_SERVER_URL
 
-        // Start Foreground Notification immediately
-        val initialNotification = if (isVivoDevice()) {
-            VivoSuperXHelper.buildIslandNotification(this, currentStatus, isUpdate = false)
-        } else {
-            PixelLiveUpdateHelper.buildLiveUpdateNotification(this, currentStatus, isUpdate = false)
+        // Start Foreground Notification immediately. Both helpers are now
+        // self-defensive (never throw), but wrap in try/catch anyway — if
+        // either path ever does throw, fall back to StandardNotificationHelper
+        // rather than killing the service process.
+        val initialNotification = try {
+            if (isVivoDevice()) {
+                VivoSuperXHelper.buildIslandNotification(this, currentStatus, isUpdate = false)
+            } else {
+                PixelLiveUpdateHelper.buildLiveUpdateNotification(this, currentStatus, isUpdate = false)
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Initial notification build failed; using standard fallback", e)
+            StandardNotificationHelper.buildStandardNotification(this, currentStatus)
         }
         startForeground(notificationId(), initialNotification)
 
