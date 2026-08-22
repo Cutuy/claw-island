@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "opencode-go": {
+      "options": {
+        "apiKey": "{env:OPENCODE_GO_API_KEY}"
+      },
+      "models": {
+        "gpt-5.6-luna": {
+          "options": {
+            "reasoningEffort": "medium"
+          }
+        },
+        "glm-5.3": {
+          "options": {
+            "reasoningEffort": "high"
+          }
+        },
+        "deepseek-v4-flash": {
+          "options": {
+            "reasoningEffort": "high"
+          }
+        },
+        "ox-alpha-free": {
+          "options": {
+            "reasoningEffort": "high"
+          }
+        }
+      }
+    }
+  },
+  "model": "opencode-go/glm-5.3",
+  "small_model": "opencode-go/deepseek-v4-flash",
+  "agent": {
+    "build": {
+      "model": "opencode-go/glm-5.3",
+      "temperature": 0.7
+    },
+    "coder": {
+      "model": "opencode-go/glm-5.3",
+      "temperature": 0.5
+    }
+  },
+  "permission": {
+    "bash": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "read": "allow",
+    "edit": "allow",
+    "webSearch": "allow",
+    "webFetch": "allow",
+    "task": "allow",
+    "external_directory": "allow"
+  }
+}

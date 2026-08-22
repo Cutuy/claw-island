@@ -1,0 +1,28 @@
+# Environment & keys
+.env
+.env.*
+!.env.example
+
+# OpenCode data & logs
+.opencode-data/
+*.log
+
+# Build & Gradle
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node
+node_modules/
