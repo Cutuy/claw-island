@@ -5,7 +5,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import com.cutuy.clawisland.models.AgentStatus
 import com.cutuy.clawisland.notification.PixelLiveUpdateHelper
@@ -36,6 +38,18 @@ class ClawIslandService : Service() {
         .retryOnConnectionFailure(true)
         .build()
 
+    // 30s heartbeat: even when SSE delivers static content (e.g. OpenClaw idle with the
+    // same current_action.md), re-post the notification so the visible setWhen() timestamp
+    // keeps advancing and the user knows updates are flowing.
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val heartbeatTick = object : Runnable {
+        override fun run() {
+            Log.d(TAG, "Heartbeat: re-posting notification (timestamp only changes)")
+            updateNotification(currentStatus)
+            mainHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
+        }
+    }
+
     companion object {
         private const val TAG = "ClawIslandService"
         const val ACTION_START = "com.cutuy.clawisland.action.START"
@@ -44,6 +58,7 @@ class ClawIslandService : Service() {
         const val EXTRA_SERVER_URL = "extra_server_url"
         const val EXTRA_SIM_PAYLOAD = "extra_sim_payload"
         const val DEFAULT_SERVER_URL = "http://100.64.0.4:18818"
+        private const val HEARTBEAT_INTERVAL_MS = 30_000L
     }
 
     override fun onCreate() {
@@ -74,8 +89,12 @@ class ClawIslandService : Service() {
             try {
                 val status = json.decodeFromString<AgentStatus>(payload)
                 isFirstNotification = true
-                val initial = VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
-                startForeground(VivoSuperXHelper.NOTIFICATION_ID, initial)
+                val initial = if (isVivoDevice()) {
+                    VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
+                } else {
+                    PixelLiveUpdateHelper.buildLiveUpdateNotification(this, status, isUpdate = false)
+                }
+                startForeground(notificationId(), initial)
                 currentStatus = status
                 updateNotification(status)
                 Log.d(TAG, "Sim status posted: ${status.agent} ${status.stateType} ${status.formattedTime}")
@@ -88,14 +107,17 @@ class ClawIslandService : Service() {
         val serverUrl = intent?.getStringExtra(EXTRA_SERVER_URL) ?: DEFAULT_SERVER_URL
 
         // Start Foreground Notification immediately
-        val initialNotification = VivoSuperXHelper.buildIslandNotification(
-            this,
-            currentStatus,
-            isUpdate = false
-        )
-        startForeground(VivoSuperXHelper.NOTIFICATION_ID, initialNotification)
+        val initialNotification = if (isVivoDevice()) {
+            VivoSuperXHelper.buildIslandNotification(this, currentStatus, isUpdate = false)
+        } else {
+            PixelLiveUpdateHelper.buildLiveUpdateNotification(this, currentStatus, isUpdate = false)
+        }
+        startForeground(notificationId(), initialNotification)
 
         connectToSse(serverUrl)
+        mainHandler.removeCallbacks(heartbeatTick)
+        mainHandler.postDelayed(heartbeatTick, HEARTBEAT_INTERVAL_MS)
+        Log.d(TAG, "Service started — SSE connect + heartbeat scheduled")
 
         return START_STICKY
     }
@@ -115,6 +137,7 @@ class ClawIslandService : Service() {
             }
 
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
+                Log.d(TAG, "SSE event received: ${data.take(120)}${if (data.length > 120) "..." else ""}")
                 try {
                     val status = json.decodeFromString<AgentStatus>(data)
                     updateNotification(status)
@@ -165,14 +188,21 @@ class ClawIslandService : Service() {
         }
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(VivoSuperXHelper.NOTIFICATION_ID, notification)
+        val id = notificationId()
+        Log.d(TAG, "notify(id=$id, agent=${status.agent}, state=${status.stateType}, t=${status.formattedTime})")
+        notificationManager.notify(id, notification)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         eventSource?.cancel()
         serviceScope.cancel()
+        mainHandler.removeCallbacks(heartbeatTick)
+        Log.d(TAG, "Service destroyed")
     }
+
+    private fun notificationId(): Int =
+        if (isVivoDevice()) VivoSuperXHelper.NOTIFICATION_ID else PixelLiveUpdateHelper.NOTIFICATION_ID
 
     private fun isVivoDevice(): Boolean {
         val manufacturer = Build.MANUFACTURER.lowercase()

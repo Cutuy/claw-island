@@ -80,7 +80,11 @@ object PixelLiveUpdateHelper {
             // Sound/vibration silenced via channel (setSound(null, null) +
             // enableVibration(false) in createNotificationChannel). Platform
             // Notification.Builder has no setSilent() — that's NotificationCompat-only.
-            .setShowWhen(false)
+            // Live timestamp visible on every update so the user can SEE the notification
+            // is updating even when content is static. setWhen uses wall-clock now so the
+            // posted time visibly advances on every notify() call.
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
             .setColor(stateColor(status))
             .setColorized(true)
             .setCategory(Notification.CATEGORY_PROGRESS)
