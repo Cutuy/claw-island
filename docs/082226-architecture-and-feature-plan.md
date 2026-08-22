@@ -2,7 +2,7 @@
 
 **Document ID:** `082226-architecture-and-feature-plan.md`  
 **Date:** 2026-08-22  
-**Status:** In Progress / Initial Setup  
+**Status:** Implemented & Verified on Android 16 (API 36)  
 **Target Device:** vivo / iQOO (OriginOS 5+, Android 16, API 36)  
 **Host:** cutuy-claw (Gateway Server) & 100.64.0.7 (Workstation Build Environment)
 
@@ -93,13 +93,13 @@ vivo OriginOS 通过在原生 `Notification` 的 `extras` 中注入 `notificatio
 ```json
 {
   "active": true,
-  "agent": "opencode",
+  "agent": "OpenCode",
   "status": "running",
-  "title": "Robinhood Terminal Refactor",
-  "detail": "Editing src/store.ts • 3 files changed",
+  "state_type": "coding",
+  "title": "Refactoring store.ts",
+  "detail": "3 files changed • +45/-12 lines",
   "model": "glm-5.3",
-  "elapsed_seconds": 142,
-  "progress_pct": 65,
+  "proc_count": 1,
   "updated_at": 1755846640000
 }
 ```
@@ -111,8 +111,8 @@ vivo OriginOS 通过在原生 `Notification` 的 `extras` 中注入 `notificatio
 - [x] 创建新 Repo `claw-island`
 - [x] 配置 `opencode.json`, `opencode.sh`, `.env`, `.gitignore`
 - [x] 建立 `docs/` 并编写架构方案与追踪文档
-- [ ] 编写 Linux Server 端（实时汇聚 OpenCode 进程/状态并输出 SSE/REST）
-- [ ] 编写 Android 16 Kotlin 客户端框架
-- [ ] 实现 OriginOS 5/6 SuperX Bundle 封装与降级兼容
-- [ ] 在 100.64.0.7 Workstation 上配置构建脚本并编译 APK
-- [ ] 实机调试验证原子岛与胶囊显示
+- [x] 编写 Linux Server 端（实时汇聚 OpenCode 进程/状态并输出 SSE/REST）
+- [x] 编写 Android 16 Kotlin 客户端框架
+- [x] 实现 OriginOS 5/6 SuperX Bundle 封装与降级兼容
+- [x] 在 100.64.0.7 Workstation 上配置构建脚本并编译 APK (`BUILD SUCCESSFUL in 1m 16s`)
+- [x] 生成 `claw-island-debug.apk` 并就绪实机调试
