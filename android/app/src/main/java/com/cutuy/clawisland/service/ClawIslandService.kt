@@ -91,7 +91,7 @@ class ClawIslandService : Service() {
                 isFirstNotification = true
                 val initial = try {
                     if (isVivoDevice()) {
-                        VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = false)
+                        VivoSuperXHelper.buildCapsuleNotification(this, status, isUpdate = false)
                     } else {
                         PixelLiveUpdateHelper.buildLiveUpdateNotification(this, status, isUpdate = false)
                     }
@@ -117,7 +117,7 @@ class ClawIslandService : Service() {
         // rather than killing the service process.
         val initialNotification = try {
             if (isVivoDevice()) {
-                VivoSuperXHelper.buildIslandNotification(this, currentStatus, isUpdate = false)
+                VivoSuperXHelper.buildCapsuleNotification(this, currentStatus, isUpdate = false)
             } else {
                 PixelLiveUpdateHelper.buildLiveUpdateNotification(this, currentStatus, isUpdate = false)
             }
@@ -187,9 +187,9 @@ class ClawIslandService : Service() {
 
         val notification = try {
             if (isVivoDevice()) {
-                // Attempt OriginOS 5/6 SuperX Atomic Island bundle (won't promote for
-                // third-party apps, but keeps parity with previous vivo-targeted behavior).
-                VivoSuperXHelper.buildIslandNotification(this, status, isUpdate = isUpdate)
+                // vivo standard-capsule path (普通胶囊). No whitelist required —
+                // status-bar pill only, no two-side island.
+                VivoSuperXHelper.buildCapsuleNotification(this, status, isUpdate = isUpdate)
             } else {
                 // Pixel / AOSP path — Android 14+ Live Updates. Real system feature,
                 // rendered by Material 3, no overlay hacks required.
