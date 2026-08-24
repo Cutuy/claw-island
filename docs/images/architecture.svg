@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="960" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <title id="title">Claw Island architecture</title>
   <desc id="desc">Codex and OpenCode local state feed a Claw Island bridge, which sends snapshots and live updates to Android and macOS clients. Firebase optionally wakes an offline Android client.</desc>
   <defs>

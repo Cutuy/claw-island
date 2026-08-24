@@ -10,7 +10,7 @@ session state and never submits prompts, runs tools, or controls an agent.
 
 <p align="center">
   <img src="docs/images/android-sessions.jpg" alt="Android session overview" width="360">
-  <img src="docs/images/android-plan.jpg" alt="Android session plan detail" width="360">
+  <img src="docs/images/android-plan.png" alt="Android session plan detail" width="360">
 </p>
 
 ## Highlights
@@ -23,7 +23,9 @@ session state and never submits prompts, runs tools, or controls an agent.
 
 ## Architecture
 
-![Claw Island architecture](docs/images/architecture.svg)
+<p align="center">
+  <img src="docs/images/architecture.svg" alt="Claw Island architecture" width="100%">
+</p>
 
 The TypeScript bridge runs beside the agent tools and normalizes their local
 state into a shared session model. Clients load a snapshot over REST, then
