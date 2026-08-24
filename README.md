@@ -9,8 +9,15 @@ It is an observability layer, not an agent gateway. Claw Island reads local
 session state and never submits prompts, runs tools, or controls an agent.
 
 <p align="center">
+  <strong>Android</strong><br>
   <img src="docs/images/android-sessions.jpg" alt="Android session overview" width="360">
   <img src="docs/images/android-plan.png" alt="Android session plan detail" width="360">
+</p>
+
+<p align="center">
+  <strong>macOS</strong><br>
+  <img src="docs/images/macos-sessions.png" alt="macOS active sessions overview" width="360">
+  <img src="docs/images/macos-session-detail.png" alt="macOS session plan detail" width="360">
 </p>
 
 ## Highlights
