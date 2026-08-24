@@ -31,14 +31,14 @@
   <path d="M 310 160 C 380 160, 390 205, 460 205" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M 310 310 C 380 310, 390 255, 460 255" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M 740 205 C 810 205, 820 150, 890 150" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M 740 255 C 810 255, 820 300, 890 300" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
-  <path d="M 740 295 C 800 355, 820 405, 890 405" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
-  <path d="M 1045 370 L 1045 340" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <path d="M 740 270 C 810 310, 820 385, 890 385" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 740 245 C 800 245, 820 261, 890 261" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <path d="M 1020 230 C 1020 215, 1020 215, 1020 205" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
 
   <text x="350" y="142" class="edge">read-only</text>
   <text x="350" y="333" class="edge">read-only</text>
   <text x="778" y="135" class="edge">REST + SSE</text>
-  <text x="778" y="292" class="edge">REST + SSE</text>
+  <text x="778" y="362" class="edge">REST + SSE</text>
 
   <g filter="url(#shadow)">
     <rect x="50" y="105" width="260" height="110" rx="18" class="card"/>
@@ -74,17 +74,17 @@
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="890" y="245" width="260" height="110" rx="18" class="card"/>
-    <rect x="925" y="274" width="40" height="28" rx="3" fill="none" stroke="#e0a3ff" stroke-width="3"/>
-    <path d="M935 312h20M945 302v10" stroke="#e0a3ff" stroke-width="3" stroke-linecap="round"/>
-    <text x="980" y="295" class="label">macOS</text>
-    <text x="980" y="324" class="sub">Menu-bar app</text>
+    <rect x="890" y="330" width="260" height="110" rx="18" class="card"/>
+    <rect x="925" y="359" width="40" height="28" rx="3" fill="none" stroke="#e0a3ff" stroke-width="3"/>
+    <path d="M935 397h20M945 387v10" stroke="#e0a3ff" stroke-width="3" stroke-linecap="round"/>
+    <text x="980" y="380" class="label">macOS</text>
+    <text x="980" y="409" class="sub">Menu-bar app</text>
   </g>
 
   <g>
-    <rect x="890" y="380" width="260" height="62" rx="16" fill="#17253a" stroke="#34517a" stroke-width="1.5"/>
-    <text x="918" y="406" class="label" style="font-size:18px">Firebase</text>
-    <text x="918" y="429" class="sub">Optional Android wake-up</text>
+    <rect x="890" y="230" width="260" height="62" rx="16" fill="#17253a" stroke="#34517a" stroke-width="1.5"/>
+    <text x="918" y="256" class="label" style="font-size:18px">Firebase</text>
+    <text x="918" y="279" class="sub">Optional Android wake-up</text>
   </g>
 
   <text x="50" y="432" class="sub">Private network boundary</text>
