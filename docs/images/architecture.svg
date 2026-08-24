@@ -1,15 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="960" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1000" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <title id="title">Claw Island architecture</title>
   <desc id="desc">Codex and OpenCode local state feed a Claw Island bridge, which sends snapshots and live updates to Android and macOS clients. Firebase optionally wakes an offline Android client.</desc>
   <defs>
-    <linearGradient id="canvas" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0c111b"/>
-      <stop offset="1" stop-color="#151c2b"/>
-    </linearGradient>
-    <linearGradient id="bridge" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f7cff"/>
-      <stop offset="1" stop-color="#7c5cff"/>
-    </linearGradient>
     <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%">
       <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity=".25"/>
     </filter>
@@ -17,16 +9,24 @@
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#71809b"/>
     </marker>
     <style>
-      .title { font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f4f7ff; }
-      .label { font: 650 21px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f4f7ff; }
-      .sub { font: 400 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #aab5ca; }
-      .edge { font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #9aa7bc; }
-      .card { fill: #1b2434; stroke: #354158; stroke-width: 1.5; }
+      .title { font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #172033; }
+      .label { font: 650 21px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #172033; }
+      .sub { font: 400 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #536078; }
+      .edge { font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #536078; }
+      .card { fill: none; stroke: #a8b2c3; stroke-width: 1.5; }
+      .bridge-card { fill: #6f63ff; fill-opacity: .08; stroke: #6f63ff; stroke-width: 2.5; }
+      .boundary { fill: none; stroke: #8793a8; stroke-width: 2; stroke-dasharray: 8 7; }
+      @media (prefers-color-scheme: dark) {
+        .title, .label { fill: #eef2fb; }
+        .sub, .edge { fill: #aeb9cd; }
+        .card { stroke: #647089; }
+        .boundary { stroke: #77839a; }
+      }
     </style>
   </defs>
 
-  <rect width="1200" height="480" rx="24" fill="url(#canvas)"/>
   <text x="48" y="52" class="title">Claw Island at a glance</text>
+  <rect x="24" y="72" width="1152" height="390" rx="24" class="boundary"/>
 
   <path d="M 310 160 C 380 160, 390 205, 460 205" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
   <path d="M 310 310 C 380 310, 390 255, 460 255" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
@@ -57,12 +57,12 @@
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="460" y="155" width="280" height="150" rx="22" fill="url(#bridge)"/>
-    <circle cx="510" cy="207" r="21" fill="#fff" fill-opacity=".18"/>
-    <path d="M500 207h20M510 197v20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <rect x="460" y="155" width="280" height="150" rx="22" class="bridge-card"/>
+    <circle cx="510" cy="207" r="21" fill="#6f63ff" fill-opacity=".16"/>
+    <path d="M500 207h20M510 197v20" stroke="#6f63ff" stroke-width="3" stroke-linecap="round"/>
     <text x="545" y="213" class="label">Claw Island</text>
-    <text x="500" y="251" class="sub" style="fill:#e8ebff">Self-hosted bridge</text>
-    <text x="500" y="278" class="sub" style="fill:#e8ebff">Normalize · stream · replay</text>
+    <text x="500" y="251" class="sub">Self-hosted bridge</text>
+    <text x="500" y="278" class="sub">Normalize · stream · replay</text>
   </g>
 
   <g filter="url(#shadow)">
@@ -82,11 +82,10 @@
   </g>
 
   <g>
-    <rect x="890" y="230" width="260" height="62" rx="16" fill="#17253a" stroke="#34517a" stroke-width="1.5"/>
+    <rect x="890" y="230" width="260" height="62" rx="16" class="card"/>
     <text x="918" y="256" class="label" style="font-size:18px">Firebase</text>
     <text x="918" y="279" class="sub">Optional Android wake-up</text>
   </g>
 
-  <text x="50" y="432" class="sub">Private network boundary</text>
-  <path d="M50 446h680" stroke="#354158" stroke-width="2" stroke-dasharray="5 6"/>
+  <text x="48" y="488" class="sub">Your personal network · workstation, home server, or VPS</text>
 </svg>

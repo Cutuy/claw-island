@@ -19,7 +19,7 @@ session state and never submits prompts, runs tools, or controls an agent.
 - Live activity, token usage, lifecycle events, and named plan steps.
 - Native Android app with ongoing notifications and optional FCM wake-up.
 - Native macOS menu-bar app with reconnect and launch-at-login support.
-- Designed for private, self-hosted networks such as Tailscale.
+- Runs on your personal network: a workstation, home server, or private VPS.
 
 ## Architecture
 
@@ -34,14 +34,16 @@ recover lifecycle events after reconnecting. On Android, FCM can wake an
 offline client; SSE remains the source of detailed live state.
 
 The bridge exposes session titles, repository names, activity, and plan text.
-Keep it on a trusted network or place it behind an authenticated proxy.
+Keep it within a personal VPN such as Tailscale, or place a VPS deployment
+behind an authenticated reverse proxy.
 
 ## Operations
 
 ### Run the bridge
 
-The bridge requires Node.js 22 or newer and a local Codex or OpenCode
-installation.
+The bridge requires Node.js 22 or newer and access to the Codex or OpenCode
+state it observes. Run it on the same workstation, home server, or VPS where
+those agent sessions run.
 
 ```bash
 git clone https://github.com/Cutuy/claw-island.git
