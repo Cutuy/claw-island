@@ -19,6 +19,7 @@ import com.cutuy.clawisland.models.SessionEvent
 import com.cutuy.clawisland.models.SessionInfo
 import com.cutuy.clawisland.models.SessionsPayload
 import com.cutuy.clawisland.notification.PixelLiveUpdateHelper
+import com.cutuy.clawisland.notification.SessionEventNotificationIdentity
 import com.cutuy.clawisland.notification.StandardNotificationHelper
 import com.cutuy.clawisland.notification.VivoSuperXHelper
 import com.cutuy.clawisland.overlay.FloatingIslandController
@@ -113,8 +114,6 @@ class ClawIslandService : Service() {
         const val SESSION_EVENTS_CHANNEL_ID = "session_events"
         private const val HEARTBEAT_INTERVAL_MS = 30_000L
         private const val NOTIFY_THROTTLE_MS = 10_000L
-        private const val EVENT_NOTIFY_BASE_ID = 20010
-        private const val EVENT_SUMMARY_THRESHOLD = 5
     }
 
     override fun onCreate() {
@@ -332,7 +331,7 @@ class ClawIslandService : Service() {
                     seenEventIds.addLast(evt.id)
                     seenEventIdsSet.add(evt.id)
                     if (seenEventIds.size > 50) {
-                        seenEventIdsSet.remove(seenEventIds.pollFirst())
+                        seenEventIds.pollFirst()?.let(seenEventIdsSet::remove)
                     }
                     MonitorPreferences.markEventSeen(this, evt.id)
                 }
@@ -342,41 +341,22 @@ class ClawIslandService : Service() {
         if (fresh.isEmpty()) return
 
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (fresh.size > EVENT_SUMMARY_THRESHOLD) {
-            // Collapse spam: one summary notification instead of N pings.
-            val summary = buildEventNotification(
-                title = "📡 ${fresh.size} session events",
-                text = fresh.joinToString("\n") { evt ->
-                    "${eventEmoji(evt.type)} ${evt.session?.repo ?: "?"} — ${(evt.session?.title ?: "").take(40)}"
-                }.take(400),
-                whenTs = fresh.last().ts
-            )
-            manager.notify(EVENT_NOTIFY_BASE_ID, summary)
-        } else {
-            fresh.forEachIndexed { idx, evt ->
-                val s = evt.session
-                val (title, text) = when (evt.type) {
-                    "session_started" -> "🆕 Session started · ${s?.repo ?: "?"}" to
-                        "${s?.title ?: "Unknown"} (${s?.model ?: "?"})"
-                    "session_resumed" -> "▶️ Session resumed · ${s?.repo ?: "?"}" to
-                        "${s?.title ?: "Unknown"} (${s?.model ?: "?"})"
-                    "session_finished" -> "✅ Session finished · ${s?.repo ?: "?"}" to
-                        "${s?.title ?: "Unknown"} · ⏱ ${formatElapsedShort(s?.elapsedSeconds ?: 0)}"
-                    "session_exited" -> "⚠️ Session exited · ${s?.repo ?: "?"}" to
-                        "${s?.title ?: "Unknown"} · ⏱ ${formatElapsedShort(s?.elapsedSeconds ?: 0)}"
-                    else -> "Session event" to evt.type
-                }
-                manager.notify(EVENT_NOTIFY_BASE_ID + idx, buildEventNotification(title, text, evt.ts))
+        fresh.forEach { evt ->
+            val s = evt.session
+            val (title, text) = when (evt.type) {
+                "session_started" -> "🆕 Session started · ${s?.repo ?: "?"}" to
+                    "${s?.title ?: "Unknown"} (${s?.model ?: "?"})"
+                "session_resumed" -> "▶️ Session resumed · ${s?.repo ?: "?"}" to
+                    "${s?.title ?: "Unknown"} (${s?.model ?: "?"})"
+                "session_finished" -> "✅ Session finished · ${s?.repo ?: "?"}" to
+                    "${s?.title ?: "Unknown"} · ⏱ ${formatElapsedShort(s?.elapsedSeconds ?: 0)}"
+                "session_exited" -> "⚠️ Session exited · ${s?.repo ?: "?"}" to
+                    "${s?.title ?: "Unknown"} · ⏱ ${formatElapsedShort(s?.elapsedSeconds ?: 0)}"
+                else -> "Session event" to evt.type
             }
+            val notificationId = SessionEventNotificationIdentity.notificationId(s?.id, evt.id)
+            manager.notify(notificationId, buildEventNotification(title, text, evt.ts, notificationId))
         }
-    }
-
-    private fun eventEmoji(type: String): String = when (type) {
-        "session_started" -> "🆕"
-        "session_resumed" -> "▶️"
-        "session_finished" -> "✅"
-        "session_exited" -> "⚠️"
-        else -> "•"
     }
 
     private fun refreshPushRegistration() {
@@ -396,13 +376,13 @@ class ClawIslandService : Service() {
         }
     }
 
-    /** One-shot, auto-cancel notification on the dedicated session_events channel. */
-    private fun buildEventNotification(title: String, text: String, whenTs: Long): android.app.Notification {
+    /** Per-session, auto-cancel notification on the dedicated session_events channel. */
+    private fun buildEventNotification(title: String, text: String, whenTs: Long, notificationId: Int): android.app.Notification {
         val clickIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, clickIntent,
+            this, notificationId, clickIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, SESSION_EVENTS_CHANNEL_ID)
@@ -411,7 +391,8 @@ class ClawIslandService : Service() {
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
+            .setOnlyAlertOnce(false)
+            .setGroup(SessionEventNotificationIdentity.GROUP_KEY)
             .setWhen(if (whenTs > 0) whenTs else System.currentTimeMillis())
             .setShowWhen(true)
             .setCategory(NotificationCompat.CATEGORY_EVENT)

@@ -66,4 +66,5 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.sse)
     implementation(libs.firebase.messaging)
+    testImplementation(libs.junit)
 }

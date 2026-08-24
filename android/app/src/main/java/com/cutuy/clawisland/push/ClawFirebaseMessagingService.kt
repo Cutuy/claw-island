@@ -7,6 +7,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.cutuy.clawisland.MainActivity
 import com.cutuy.clawisland.R
+import com.cutuy.clawisland.notification.SessionEventNotificationIdentity
 import com.cutuy.clawisland.service.ClawIslandService
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -21,13 +22,14 @@ class ClawFirebaseMessagingService : FirebaseMessagingService() {
         if (eventId.isEmpty() || MonitorPreferences.hasSeenEvent(this, eventId)) return
         MonitorPreferences.markEventSeen(this, eventId)
         ensureChannel()
+        val notificationId = SessionEventNotificationIdentity.notificationId(message.data["session_id"], eventId)
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("push_event_id", eventId)
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            eventId.hashCode(),
+            notificationId,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -41,9 +43,11 @@ class ClawFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setOnlyAlertOnce(false)
+            .setGroup(SessionEventNotificationIdentity.GROUP_KEY)
             .setContentIntent(pendingIntent)
             .build()
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(eventId.hashCode(), notification)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(notificationId, notification)
     }
 
     private fun ensureChannel() {
