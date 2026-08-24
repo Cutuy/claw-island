@@ -14,6 +14,7 @@ app/build/
 *.apk
 *.aab
 local.properties
+google-services.json
 .idea/
 *.iml
 .DS_Store
@@ -24,5 +25,10 @@ __pycache__/
 venv/
 .venv/
 
+# Bridge runtime state (persisted event seq/ring)
+server/.events-state.json
+server/.push-devices.json
+
 # Node
 node_modules/
+dist/
