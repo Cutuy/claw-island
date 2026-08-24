@@ -43,3 +43,5 @@ alerting the user whenever a genuinely new lifecycle event is delivered.
   `4b77bbf5c0ca3268fd1bc95d3cb5b9f9fe777391c6c1d1d21484ad90deacf577`.
 - SSE and FCM both post with the same stable ID and group key, while
   `onlyAlertOnce` is disabled for new lifecycle updates.
+- Device validation: confirmed by the user that Android now keeps one row per
+  session and updates/alerts as expected.

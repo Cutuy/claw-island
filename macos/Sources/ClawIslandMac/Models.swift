@@ -107,7 +107,19 @@ struct SessionEvent: Codable, Hashable, Identifiable {
     var seq: Int64 = 0
     var type = "session_started"
     var ts: Int64 = 0
+    var sessionID: String?
     var session: SessionInfo?
+
+    enum CodingKeys: String, CodingKey {
+        case id, seq, type, ts, session
+        case sessionID = "session_id"
+    }
+
+    var groupingSessionID: String? {
+        if let sessionID, !sessionID.isEmpty { return sessionID }
+        if let nested = session?.id, !nested.isEmpty { return nested }
+        return nil
+    }
 }
 
 struct SessionsPayload: Codable, Hashable {

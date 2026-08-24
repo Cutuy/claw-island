@@ -21,7 +21,7 @@ struct SelfTest {
     }
 
     static func testSnapshotAndPartialEvent() throws {
-        let data = Data(#"{"now_ts":1787531850111,"active":[{"id":"codex:abc","source":"codex","title":"Build client","repo":"claw-island","model":"gpt-5.6-sol","is_active":true,"elapsed_seconds":42,"message_count":5,"tokens_total":1200,"tokens_input":1000,"tokens_output":200,"tokens_cache_read":500,"cost":0.12,"updated_at":1787531800000,"last_activity":"Writing Swift","todo":{"total":3,"completed":1,"in_progress":1,"pending":1,"items":[{"content":"Inspect server contract","status":"completed","priority":"medium"},{"content":"Render named checklist","status":"in_progress","priority":"high"},{"content":"Package the app","status":"pending","priority":"medium"}]}}],"recent":[],"events":[{"id":"evt_1","seq":9,"type":"session_finished","ts":1787531850000,"session":{"id":"opencode:x","repo":"demo","title":"Done","elapsed_seconds":61}}],"delta":true,"max_seq":9}"#.utf8)
+        let data = Data(#"{"now_ts":1787531850111,"active":[{"id":"codex:abc","source":"codex","title":"Build client","repo":"claw-island","model":"gpt-5.6-sol","is_active":true,"elapsed_seconds":42,"message_count":5,"tokens_total":1200,"tokens_input":1000,"tokens_output":200,"tokens_cache_read":500,"cost":0.12,"updated_at":1787531800000,"last_activity":"Writing Swift","todo":{"total":3,"completed":1,"in_progress":1,"pending":1,"items":[{"content":"Inspect server contract","status":"completed","priority":"medium"},{"content":"Render named checklist","status":"in_progress","priority":"high"},{"content":"Package the app","status":"pending","priority":"medium"}]}}],"recent":[],"events":[{"id":"evt_1","seq":9,"type":"session_finished","ts":1787531850000,"session_id":"opencode:x","session":{"id":"opencode:x","repo":"demo","title":"Done","elapsed_seconds":61}}],"delta":true,"max_seq":9}"#.utf8)
         let payload = try JSONDecoder().decode(SessionsPayload.self, from: data)
         try expect(payload.active.first?.tokensTotal == 1_200, "tokens_total did not decode")
         try expect(payload.active.first?.todo.inProgress == 1, "todo in_progress did not decode")
@@ -31,6 +31,7 @@ struct SelfTest {
         try expect(payload.active.first?.todo.items[1].status == "in_progress", "current plan step status did not decode")
         try expect(payload.events.first?.session?.repo == "demo", "partial lifecycle session did not decode")
         try expect(payload.events.first?.session?.model == "", "missing partial-session fields did not default")
+        try expect(payload.events.first?.groupingSessionID == "opencode:x", "top-level session_id was not selected for grouping")
     }
 
     static func testHeartbeat() throws {
