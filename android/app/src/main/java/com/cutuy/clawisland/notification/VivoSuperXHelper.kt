@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.cutuy.clawisland.MainActivity
 import com.cutuy.clawisland.R
 import com.cutuy.clawisland.models.AgentStatus
+import com.cutuy.clawisland.models.SessionsPayload
 
 /**
  * vivo OriginOS 5/6 standard-capsule (普通胶囊) helper.
@@ -108,6 +109,108 @@ object VivoSuperXHelper {
             .apply {
                 flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
             }
+    }
+
+    /**
+     * v2: persistent live notification in the notification center, derived from
+     * the full sessions payload. Ongoing + only-alert-once + advancing when()
+     * + real progress bar (todo) + BigTextStyle todo list.
+     */
+    fun buildSessionsNotification(
+        context: Context,
+        payload: SessionsPayload,
+        isUpdate: Boolean = false
+    ): Notification {
+        val content = SessionsContent.build(payload)
+
+        val clickIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            clickIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_claw_logo)
+            .setContentTitle(content.title)
+            .setContentText(content.text)
+            .setSubText(content.subtext)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(content.bigText)
+                    .setBigContentTitle(content.title)
+                    .setSummaryText(content.subtext)
+            )
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setShowWhen(true)
+            .setWhen(System.currentTimeMillis())
+            .setColor(if (content.activeCount > 0) 0xFFFFB59D.toInt() else 0xFF9E9E9E.toInt())
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+
+        when {
+            content.hasProgress -> builder.setProgress(content.progressMax, content.progressValue, false)
+            content.indeterminate -> builder.setProgress(0, 0, true)
+        }
+
+        val extras = Bundle().apply {
+            attachSessionsCapsuleExtras(context, this, content, isUpdate, pendingIntent)
+        }
+
+        return builder
+            .addExtras(extras)
+            .build()
+            .apply {
+                flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+            }
+    }
+
+    /**
+     * Capsule sub-bundle for the sessions payload — same rules as the legacy
+     * path: only the standard status-bar pill (普通胶囊), no whitelist-gated
+     * island fields. The capsule shows the top active session.
+     */
+    private fun attachSessionsCapsuleExtras(
+        context: Context,
+        extras: Bundle,
+        content: SessionsContent.Content,
+        isUpdate: Boolean,
+        pendingIntent: PendingIntent
+    ) {
+        val operation = when {
+            isUpdate && content.activeCount == 0 -> 2  // transitioning to idle → end capsule
+            isUpdate -> 1
+            else -> 0
+        }
+        extras.putInt("notification.superx.operation", operation)
+        extras.putBoolean("notification.superx.showNotify", true)
+        extras.putBoolean("notification.superx.sound", false)
+        extras.putBoolean("notification.superx.dismissWhenKill", false)
+        extras.putParcelable("notification.superx.clickResp", pendingIntent)
+
+        val capsuleContent = if (content.activeCount > 0) {
+            val top = content.top
+            val timeStr = if (!top?.formattedTime.isNullOrEmpty()) " ${top.formattedTime}" else ""
+            "🔨 ${top?.repo ?: "opencode"}$timeStr"
+        } else {
+            "Claw Island · Idle"
+        }
+
+        val capsuleBundle = Bundle().apply {
+            putInt("notification.superx.capsule.state", 1)
+            putParcelable("notification.superx.capsule.icon", Icon.createWithResource(context, R.drawable.ic_claw_logo))
+            putString("notification.superx.capsule.content", capsuleContent)
+            putInt("notification.superx.capsule.bgColor", Color.parseColor("#1C1B1F"))
+            putInt("notification.superx.capsule.contentColor", Color.parseColor("#FFD8E4"))
+            putParcelable("notification.superx.capsule.clickResp", pendingIntent)
+        }
+        extras.putBundle("notification.superx.capsule", capsuleBundle)
     }
 
     /**

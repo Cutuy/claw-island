@@ -11,6 +11,7 @@ import android.util.Log
 import com.cutuy.clawisland.MainActivity
 import com.cutuy.clawisland.R
 import com.cutuy.clawisland.models.AgentStatus
+import com.cutuy.clawisland.models.SessionsPayload
 
 /**
  * Pixel / AOSP Live Updates helper.
@@ -108,6 +109,88 @@ object PixelLiveUpdateHelper {
         } catch (e: Throwable) {
             Log.e(TAG, "Rich notification build failed; falling back to minimal", e)
             buildMinimalNotification(context, status, pendingIntent)
+        }
+    }
+
+    /**
+     * v2: persistent live notification in the notification center, derived from
+     * the full sessions payload. Ongoing + only-alert-once + advancing when()
+     * + progress bar (todo) + BigTextStyle todo list. Self-defensive like the
+     * legacy path.
+     */
+    fun buildSessionsNotification(
+        context: Context,
+        payload: SessionsPayload,
+        isUpdate: Boolean = false
+    ): Notification {
+        val content = SessionsContent.build(payload)
+
+        val clickIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, clickIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return try {
+            val builder = Notification.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_claw_logo)
+                .setContentTitle(content.title)
+                .setContentText(content.text)
+                .setSubText(content.subtext)
+                .setStyle(
+                    Notification.BigTextStyle()
+                        .bigText(content.bigText)
+                        .setBigContentTitle(content.title)
+                        .setSummaryText(content.subtext)
+                )
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setCategory(Notification.CATEGORY_SERVICE)
+                .setShowWhen(true)
+                .setWhen(System.currentTimeMillis())
+                .setColor(if (content.activeCount > 0) 0xFFFFB59D.toInt() else 0xFF9E9E9E.toInt())
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setPriority(Notification.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+
+            when {
+                content.hasProgress -> builder.setProgress(content.progressMax, content.progressValue, false)
+                content.indeterminate -> builder.setProgress(0, 0, true)
+            }
+
+            builder.build().apply {
+                flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Sessions notification build failed; falling back to minimal", e)
+            buildMinimalSessionsNotification(context, content, pendingIntent)
+        }
+    }
+
+    private fun buildMinimalSessionsNotification(
+        context: Context,
+        content: SessionsContent.Content,
+        pendingIntent: PendingIntent
+    ): Notification {
+        return try {
+            Notification.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_claw_logo)
+                .setContentTitle(content.title)
+                .setContentText(content.text.take(200))
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setWhen(System.currentTimeMillis())
+                .setShowWhen(true)
+                .setContentIntent(pendingIntent)
+                .build()
+                .apply {
+                    flags = flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
+                }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Minimal sessions fallback also failed; returning bare notification", e)
+            Notification()
         }
     }
 
