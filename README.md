@@ -141,5 +141,6 @@ docs/                   Design records and project plans
 server-python-legacy/   Retired bridge retained for reference
 ```
 
-No open-source license has been selected yet. Add a `LICENSE` file before
-publishing or accepting contributions.
+## License
+
+Claw Island is available under the [MIT License](LICENSE).
