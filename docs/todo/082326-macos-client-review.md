@@ -1,6 +1,6 @@
 # macOS client review
 
-**Status:** review complete; implementation follow-ups pending
+**Status:** primary findings addressed; native Mac verification and optional polish pending
 **Date:** 2026-08-23
 
 ## Summary
@@ -22,9 +22,9 @@ notification replacement explicitly per-session.
 represents session activity. A quiet session can therefore appear much older
 than it is.
 
-- [ ] Pass `payload.nowTs` into active-session cards and detail views.
-- [ ] Calculate live elapsed as `elapsedSeconds + max(0, now - payload.nowTs)`.
-- [ ] Add a test where `updated_at` is old but `now_ts` is current.
+- [x] Pass `payload.nowTs` into active-session cards and detail views.
+- [x] Calculate live elapsed as `elapsedSeconds + max(0, now - payload.nowTs)`.
+- [x] Add a test where `updated_at` is old but `now_ts` is current.
 
 Relevant code:
 
@@ -43,8 +43,8 @@ The SSE endpoint already emits a full snapshot whenever the content hash
 changes. Compact `delta: false` messages should normally update connection
 liveness only.
 
-- [ ] Remove the four-second REST refresh from normal heartbeat handling.
-- [ ] If desired, retain a slow safety reconciliation interval of one to five
+- [x] Remove the four-second REST refresh from normal heartbeat handling.
+- [x] Retain a slow safety reconciliation interval of one to five
   minutes.
 - [ ] Verify that a Codex plan update arrives through SSE without manual
   reconnect or REST polling.
@@ -61,9 +61,9 @@ The notification manager reuses a stable `UNNotificationRequest` identifier.
 That reliably replaces a pending request, but already delivered Notification
 Center entries should be removed explicitly before posting the replacement.
 
-- [ ] Call `removeDeliveredNotifications(withIdentifiers: [id])` before adding
+- [x] Call `removeDeliveredNotifications(withIdentifiers: [id])` before adding
   the updated request.
-- [ ] Preserve the stable per-session request and thread identifiers.
+- [x] Preserve the stable per-session request and thread identifiers.
 - [ ] Confirm a start followed by finish leaves one delivered row and that the
   finish event still alerts.
 
@@ -83,9 +83,9 @@ Recommended behavior: coalesce the batch by session, post the newest event for
 each session, and optionally add a summary when several distinct sessions were
 updated.
 
-- [ ] Replace the early summary return with per-session coalescing.
-- [ ] Avoid alert storms when reconnecting after a long absence.
-- [ ] Test multiple events for one session and events from multiple sessions.
+- [x] Replace the early summary return with per-session coalescing.
+- [x] Avoid alert storms when reconnecting after a long absence.
+- [x] Test multiple events for one session and events from multiple sessions.
 
 Relevant code:
 
@@ -99,9 +99,9 @@ Relevant code:
 a time. It is acceptable at current sizes but can make the menu-bar UI less
 responsive as full snapshots or named plans grow.
 
-- [ ] Move transport and SSE parsing into a dedicated actor/background task.
-- [ ] Publish decoded snapshots and events back to `MainActor` in batches.
-- [ ] Preserve cancellation and the current reconnect/watchdog discipline.
+- [x] Move transport and SSE parsing into a dedicated actor/background task.
+- [x] Publish complete decoded event payloads back to `MainActor`.
+- [x] Preserve cancellation and the current reconnect/watchdog discipline.
 
 Relevant code:
 
@@ -114,8 +114,10 @@ Relevant code:
 - [ ] Display notification authorization status in Settings and provide an
   **Open System Settings** action when permission is denied.
 - [ ] Route notification clicks to the corresponding session detail view.
-- [ ] Add behavioral tests for cursor reset, reconnect replay, event
-  deduplication, and stable per-session notification keys.
+- [ ] Add behavioral tests for cursor reset, reconnect replay, and event
+  deduplication.
+- [x] Add tests for elapsed baselines, replay coalescing, and stable per-session
+  notification keys.
 
 ## Verification limitation
 
@@ -129,3 +131,8 @@ cd macos
 ./scripts/self-test.sh
 ./scripts/package-app.sh
 ```
+
+The updated implementation was re-reviewed on Linux and passes repository
+whitespace checks. Native compilation remains the gating verification because
+the changes introduce Swift concurrency boundaries and UserNotifications code
+that cannot be compiled by the gateway environment.

@@ -152,6 +152,20 @@ struct SessionsPayload: Codable, Hashable {
 }
 
 enum SessionFormatting {
+    static func liveElapsed(
+        _ session: SessionInfo,
+        payloadNowTs: Int64,
+        now: Date = .now
+    ) -> Int {
+        guard session.isActive else { return session.elapsedSeconds }
+        guard payloadNowTs > 0 else { return session.elapsedSeconds }
+        let sinceSnapshot = max(
+            0,
+            Int(now.timeIntervalSince1970 - Double(payloadNowTs) / 1_000)
+        )
+        return session.elapsedSeconds + sinceSnapshot
+    }
+
     static func effectiveTokens(_ session: SessionInfo) -> Int64 {
         session.tokensTotal > 0 ? session.tokensTotal : session.tokensInput + session.tokensOutput
     }

@@ -32,20 +32,10 @@ final class AppModel: ObservableObject {
     private var seenEventIDs: [String]
     private var seenEventIDSet: Set<String>
     private let decoder = JSONDecoder()
+    private let transport = SSETransport()
     private let networkMonitor = NWPathMonitor()
     private let networkQueue = DispatchQueue(label: "com.cutuy.clawisland.network")
     private var wakeObserver: NSObjectProtocol?
-    private lazy var urlSession: URLSession = {
-        let configuration = URLSessionConfiguration.ephemeral
-        // The bridge emits a heartbeat every two seconds. Fifteen seconds of
-        // silence is therefore a dead stream, even when the socket has not
-        // formally closed after sleep or a Tailscale path change.
-        configuration.timeoutIntervalForRequest = 15
-        configuration.timeoutIntervalForResource = 7 * 24 * 60 * 60
-        configuration.waitsForConnectivity = false
-        return URLSession(configuration: configuration)
-    }()
-
     private enum Keys {
         static let serverURL = "serverURL"
         static let notificationsEnabled = "notificationsEnabled"
@@ -213,8 +203,7 @@ final class AppModel: ObservableObject {
     private func fetchSnapshot(reportFailure: Bool) async {
         guard let base = normalizedBaseURL(), let url = URL(string: "\(base)/api/sessions") else { return }
         do {
-            let (data, response) = try await urlSession.data(from: url)
-            try validate(response)
+            let data = try await transport.fetch(url)
             var snapshot = try decoder.decode(SessionsPayload.self, from: data)
             snapshot.events = []
             payload = snapshot
@@ -233,29 +222,24 @@ final class AppModel: ObservableObject {
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         request.timeoutInterval = 15
         connectionState = .connecting
-        let (bytes, response) = try await urlSession.bytes(for: request)
-        try validate(response)
+        try await transport.consume(
+            request: request,
+            onOpen: { [weak self] in
+                await self?.didOpenSSE()
+            },
+            onEvent: { [weak self] data in
+                guard let self else { return }
+                try await self.applySSEData(data)
+            }
+        )
+    }
+
+    private func didOpenSSE() {
         connectionState = .connected
         reconnectAttempt = 0
         // Give the new stream one watchdog interval to deliver its immediate
         // first frame before considering it stale.
         lastMessageAt = .now
-        var parser = SSEParser()
-        var lineBytes: [UInt8] = []
-        lineBytes.reserveCapacity(8_192)
-        for try await byte in bytes {
-            try Task.checkCancellation()
-            if byte == 0x0A {
-                var line = String(decoding: lineBytes, as: UTF8.self)
-                if line.last == "\r" { line.removeLast() }
-                lineBytes.removeAll(keepingCapacity: true)
-                if let data = parser.consume(line: line) {
-                    try await applySSEData(data)
-                }
-            } else {
-                lineBytes.append(byte)
-            }
-        }
     }
 
     private func applySSEData(_ string: String) async throws {
@@ -269,11 +253,10 @@ final class AppModel: ObservableObject {
         if incoming.delta {
             payload = incoming
             lastSnapshotAt = .now
-        } else if lastSnapshotAt.map({ Date.now.timeIntervalSince($0) >= 4 }) ?? true {
-            // The bridge intentionally sends compact heartbeats between full
-            // SSE snapshots. Use the heartbeat as an active resync trigger on
-            // desktop so plans and latest activity never require a reconnect
-            // button just to obtain the current snapshot.
+        } else if lastSnapshotAt.map({ Date.now.timeIntervalSince($0) >= 120 }) ?? true {
+            // Compact heartbeats normally update liveness only. A slow safety
+            // reconciliation guards against an unlikely missed full frame
+            // without defeating the bridge's compact SSE data model.
             await fetchSnapshot(reportFailure: false)
         }
     }
@@ -306,11 +289,5 @@ final class AppModel: ObservableObject {
         guard let url = URL(string: trimmed), let scheme = url.scheme,
               ["http", "https"].contains(scheme), url.host != nil else { return nil }
         return trimmed
-    }
-
-    private func validate(_ response: URLResponse) throws {
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
     }
 }

@@ -1,6 +1,6 @@
 # macOS menu-bar client
 
-**Status:** imported and reviewed; Mac-host verification pending
+**Status:** primary review findings addressed; Mac-host verification pending
 **Date:** 2026-08-23
 
 ## Goal

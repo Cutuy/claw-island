@@ -12,6 +12,7 @@ struct SelfTest {
         try testHeartbeat()
         try testSSEParser()
         try testFormatting()
+        try testNotificationGrouping()
         try await testLiveGateway()
         print("All Claw Island self-tests passed")
     }
@@ -61,6 +62,38 @@ struct SelfTest {
         openCode.cost = 0.0919
         try expect(SessionFormatting.effectiveTokens(openCode) == 1_250, "OpenCode token sum failed")
         try expect(SessionFormatting.usageSummary(openCode, includeCache: false) == "in 1.0k · out 250 · $0.092", "OpenCode usage summary failed")
+        var active = SessionInfo()
+        active.isActive = true
+        active.elapsedSeconds = 30
+        active.updatedAt = 1_000 // Deliberately ancient; it is not the timer baseline.
+        let snapshotNow: Int64 = 1_000_000
+        let fiveSecondsLater = Date(timeIntervalSince1970: 1_005)
+        try expect(
+            SessionFormatting.liveElapsed(active, payloadNowTs: snapshotNow, now: fiveSecondsLater) == 35,
+            "live elapsed used session updated_at instead of payload now_ts"
+        )
+    }
+
+    static func testNotificationGrouping() throws {
+        var sessionA = SessionInfo()
+        sessionA.id = "codex:a"
+        var sessionB = SessionInfo()
+        sessionB.id = "opencode:b"
+        let events = [
+            SessionEvent(id: "a-start", seq: 1, type: "session_started", ts: 1, sessionID: nil, session: sessionA),
+            SessionEvent(id: "b-start", seq: 2, type: "session_started", ts: 2, sessionID: nil, session: sessionB),
+            SessionEvent(id: "a-finish", seq: 3, type: "session_finished", ts: 3, sessionID: nil, session: sessionA)
+        ]
+        let grouped = NotificationManager.coalescedEvents(events)
+        try expect(grouped.map(\.id) == ["b-start", "a-finish"], "replay did not retain the newest event per session")
+        try expect(
+            NotificationManager.notificationKey(for: events[0]) == NotificationManager.notificationKey(for: events[2]),
+            "one session did not receive a stable notification key"
+        )
+        try expect(
+            NotificationManager.notificationKey(for: events[0]) != NotificationManager.notificationKey(for: events[1]),
+            "different sessions received the same notification key"
+        )
     }
 
     static func testLiveGateway() async throws {

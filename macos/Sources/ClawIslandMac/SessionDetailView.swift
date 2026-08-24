@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SessionDetailView: View {
     let session: SessionInfo
+    let payloadNowTs: Int64
     let now: Date
     let onClose: () -> Void
 
@@ -93,7 +94,7 @@ struct SessionDetailView: View {
     }
 
     private var liveElapsed: Int {
-        session.elapsedSeconds + (session.isActive ? max(0, Int(now.timeIntervalSince1970 - Double(session.updatedAt) / 1_000)) : 0)
+        SessionFormatting.liveElapsed(session, payloadNowTs: payloadNowTs, now: now)
     }
     private func todoSymbol(_ status: String) -> String {
         switch status { case "completed": return "✓"; case "in_progress": return "●"; default: return "○" }

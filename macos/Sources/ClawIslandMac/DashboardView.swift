@@ -24,7 +24,11 @@ struct DashboardView: View {
                 }
                 .environmentObject(model)
             } else if let selectedSession {
-                SessionDetailView(session: selectedSession, now: now) {
+                SessionDetailView(
+                    session: selectedSession,
+                    payloadNowTs: model.payload.nowTs,
+                    now: now
+                ) {
                     selectedSessionID = nil
                     pane = .active
                 }
@@ -124,7 +128,11 @@ struct DashboardView: View {
             EmptyPane(symbol: model.isConnected ? "moon.zzz" : "wifi.slash", title: model.isConnected ? "All agents idle" : "Gateway offline", detail: model.isConnected ? "Standing by for new sessions" : "Monitoring will reconnect automatically")
         } else {
             ForEach(model.payload.active) { session in
-                ActiveSessionCard(session: session, now: now) { selectedSessionID = session.id }
+                ActiveSessionCard(
+                    session: session,
+                    payloadNowTs: model.payload.nowTs,
+                    now: now
+                ) { selectedSessionID = session.id }
             }
         }
     }
@@ -197,6 +205,7 @@ private struct MetricView: View {
 
 private struct ActiveSessionCard: View {
     let session: SessionInfo
+    let payloadNowTs: Int64
     let now: Date
     let action: () -> Void
     var body: some View {
@@ -243,7 +252,7 @@ private struct ActiveSessionCard: View {
         }.buttonStyle(.plain)
     }
     private var liveElapsed: Int {
-        session.elapsedSeconds + max(0, Int(now.timeIntervalSince1970 - Double(session.updatedAt) / 1_000))
+        SessionFormatting.liveElapsed(session, payloadNowTs: payloadNowTs, now: now)
     }
     private var staleness: Int { max(0, Int(now.timeIntervalSince1970 - Double(session.updatedAt) / 1_000)) }
 }
