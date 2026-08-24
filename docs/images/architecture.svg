@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">Claw Island architecture</title>
+  <desc id="desc">Codex and OpenCode local state feed a Claw Island bridge, which sends snapshots and live updates to Android and macOS clients. Firebase optionally wakes an offline Android client.</desc>
+  <defs>
+    <linearGradient id="canvas" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c111b"/>
+      <stop offset="1" stop-color="#151c2b"/>
+    </linearGradient>
+    <linearGradient id="bridge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f7cff"/>
+      <stop offset="1" stop-color="#7c5cff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity=".25"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#71809b"/>
+    </marker>
+    <style>
+      .title { font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f4f7ff; }
+      .label { font: 650 21px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f4f7ff; }
+      .sub { font: 400 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #aab5ca; }
+      .edge { font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #9aa7bc; }
+      .card { fill: #1b2434; stroke: #354158; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="480" rx="24" fill="url(#canvas)"/>
+  <text x="48" y="52" class="title">Claw Island at a glance</text>
+
+  <path d="M 310 160 C 380 160, 390 205, 460 205" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 310 310 C 380 310, 390 255, 460 255" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 740 205 C 810 205, 820 150, 890 150" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 740 255 C 810 255, 820 300, 890 300" fill="none" stroke="#71809b" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M 740 295 C 800 355, 820 405, 890 405" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+  <path d="M 1045 370 L 1045 340" fill="none" stroke="#7289da" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+
+  <text x="350" y="142" class="edge">read-only</text>
+  <text x="350" y="333" class="edge">read-only</text>
+  <text x="778" y="135" class="edge">REST + SSE</text>
+  <text x="778" y="292" class="edge">REST + SSE</text>
+
+  <g filter="url(#shadow)">
+    <rect x="50" y="105" width="260" height="110" rx="18" class="card"/>
+    <circle cx="92" cy="147" r="17" fill="#51c8a8"/>
+    <path d="M84 147h16M92 139v16" stroke="#0c111b" stroke-width="3" stroke-linecap="round"/>
+    <text x="122" y="151" class="label">OpenCode</text>
+    <text x="82" y="185" class="sub">Local session state</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="50" y="255" width="260" height="110" rx="18" class="card"/>
+    <circle cx="92" cy="297" r="17" fill="#a68cff"/>
+    <path d="M84 297h16M92 289v16" stroke="#0c111b" stroke-width="3" stroke-linecap="round"/>
+    <text x="122" y="301" class="label">Codex</text>
+    <text x="82" y="335" class="sub">Local session state</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="460" y="155" width="280" height="150" rx="22" fill="url(#bridge)"/>
+    <circle cx="510" cy="207" r="21" fill="#fff" fill-opacity=".18"/>
+    <path d="M500 207h20M510 197v20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <text x="545" y="213" class="label">Claw Island</text>
+    <text x="500" y="251" class="sub" style="fill:#e8ebff">Self-hosted bridge</text>
+    <text x="500" y="278" class="sub" style="fill:#e8ebff">Normalize · stream · replay</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="890" y="95" width="260" height="110" rx="18" class="card"/>
+    <rect x="930" y="121" width="28" height="48" rx="6" fill="none" stroke="#7fb2ff" stroke-width="3"/>
+    <circle cx="944" cy="162" r="2.5" fill="#7fb2ff"/>
+    <text x="980" y="145" class="label">Android</text>
+    <text x="980" y="174" class="sub">App + notifications</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="890" y="245" width="260" height="110" rx="18" class="card"/>
+    <rect x="925" y="274" width="40" height="28" rx="3" fill="none" stroke="#e0a3ff" stroke-width="3"/>
+    <path d="M935 312h20M945 302v10" stroke="#e0a3ff" stroke-width="3" stroke-linecap="round"/>
+    <text x="980" y="295" class="label">macOS</text>
+    <text x="980" y="324" class="sub">Menu-bar app</text>
+  </g>
+
+  <g>
+    <rect x="890" y="380" width="260" height="62" rx="16" fill="#17253a" stroke="#34517a" stroke-width="1.5"/>
+    <text x="918" y="406" class="label" style="font-size:18px">Firebase</text>
+    <text x="918" y="429" class="sub">Optional Android wake-up</text>
+  </g>
+
+  <text x="50" y="432" class="sub">Private network boundary</text>
+  <path d="M50 446h680" stroke="#354158" stroke-width="2" stroke-dasharray="5 6"/>
+</svg>
