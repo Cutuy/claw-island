@@ -12,23 +12,38 @@ export class CodexSource {
     if (!existsSync(statePath) || !existsSync(historyPath)) return { active: [], recent: [], warning: "Codex databases not found" };
     const state = new DatabaseSync(statePath, { readOnly: true }), history = new DatabaseSync(historyPath, { readOnly: true });
     try {
-      const turns = history.prepare("SELECT thread_id, MIN(started_at) started_at, COUNT(*) turn_count FROM thread_turns WHERE status='inProgress' GROUP BY thread_id").all() as Row[];
-      const active = new Map(turns.map(r => [String(r.thread_id), r]));
-      const counts = new Map((history.prepare("SELECT thread_id, COUNT(*) count FROM thread_turns GROUP BY thread_id").all() as Row[]).map(r => [String(r.thread_id), Number(r.count)]));
-      const activities = new Map<string,string>(), phases = new Map<string,string>(), actions = new Map<string,string>();
-      for (const r of history.prepare("SELECT thread_id,item_type,item_json FROM thread_items ORDER BY rollout_ordinal DESC").all() as Row[]) {
-        const id=String(r.thread_id), type=String(r.item_type);
-        if (!phases.has(id)) phases.set(id, phaseFor(type));
-        try {
-          const item=JSON.parse(String(r.item_json)) as {text?:string;command?:string;changes?:unknown[]};
-          if(type==="agentMessage"&&!activities.has(id)){const text=clean(item.text);if(text)activities.set(id,text)}
-          if(!actions.has(id)){const action=actionFor(type,item);if(action)actions.set(id,action)}
-        } catch {}
-      }
       const rows=state.prepare("SELECT id,rollout_path,cwd,title,model,model_provider,tokens_used,created_at_ms,updated_at_ms,preview,git_branch,reasoning_effort FROM threads WHERE archived=0 ORDER BY updated_at_ms DESC LIMIT 100").all() as Row[];
+      if (!rows.length) return { active: [], recent: [] };
+      const ids = rows.map(r => String(r.id)), placeholders = ids.map(() => "?").join(",");
+      const turns = history.prepare(`SELECT thread_id, MIN(started_at) started_at, COUNT(*) turn_count FROM thread_turns WHERE thread_id IN (${placeholders}) AND status='inProgress' GROUP BY thread_id`).all(...ids) as Row[];
+      const active = new Map(turns.map(r => [String(r.thread_id), r]));
+      const counts = new Map((history.prepare(`SELECT thread_id, COUNT(*) count FROM thread_turns WHERE thread_id IN (${placeholders}) GROUP BY thread_id`).all(...ids) as Row[]).map(r => [String(r.thread_id), Number(r.count)]));
+      const activities = new Map<string,string>(), phases = new Map<string,string>(), actions = new Map<string,string>();
+      // Codex indexes items by (thread_id, rollout_ordinal). Seek within each
+      // visible thread and stop at the latest usable value instead of loading
+      // and parsing the entire history on every poll.
+      const latestItem = history.prepare("SELECT item_type FROM thread_items WHERE thread_id=? ORDER BY rollout_ordinal DESC LIMIT 1");
+      const messages = history.prepare("SELECT item_json FROM thread_items WHERE thread_id=? AND item_type='agentMessage' ORDER BY rollout_ordinal DESC");
+      const actionItems = history.prepare("SELECT item_type,item_json FROM thread_items WHERE thread_id=? AND item_type IN ('commandExecution','fileChange') ORDER BY rollout_ordinal DESC");
+      for (const r of rows) {
+        const id = String(r.id), latest = latestItem.get(id) as Row | undefined;
+        if (latest) phases.set(id, phaseFor(String(latest.item_type)));
+        for (const message of messages.iterate(id)) {
+          try {
+            const text = clean(JSON.parse(String(message.item_json)).text);
+            if (text) { activities.set(id, text); break; }
+          } catch {}
+        }
+        for (const item of actionItems.iterate(id)) {
+          try {
+            const action = actionFor(String(item.item_type), JSON.parse(String(item.item_json)));
+            if (action) { actions.set(id, action); break; }
+          } catch {}
+        }
+      }
       const sessions=rows.map(r => {const turn=active.get(String(r.id));const plan=turn?normalizePlan(this.plans.read(String(r.rollout_path??"")),true):emptyTodo();return this.normalize(r,turn,counts,activities,phases,actions,plan,now)});
-      const current=sessions.filter(s=>s.is_active).sort(byUpdated), ids=new Set(current.map(s=>s.id));
-      return {active:current,recent:sessions.filter(s=>!ids.has(s.id)).sort(byUpdated).slice(0,this.limit)};
+      const current=sessions.filter(s=>s.is_active).sort(byUpdated), currentIds=new Set(current.map(s=>s.id));
+      return {active:current,recent:sessions.filter(s=>!currentIds.has(s.id)).sort(byUpdated).slice(0,this.limit)};
     } finally { history.close(); state.close(); }
   }
   private normalize(r:Row, turn:Row|undefined, counts:Map<string,number>, activity:Map<string,string>, phases:Map<string,string>, actions:Map<string,string>, todo:Plan, now:number):Session {
